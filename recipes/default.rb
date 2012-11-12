@@ -48,6 +48,7 @@ node["sites"].each do |site|
       remote_file "#{Chef::Config[:file_cache_path]}/wordpress-latest.tar.gz" do
         source "http://wordpress.org/latest.tar.gz"
         mode "0644"
+       # action :create_if_missing
       end
     end
   else
@@ -93,4 +94,11 @@ node["sites"].each do |site|
     notifies :write, "log[Navigate to 'http://#{site_fqdn}/wp-admin/install.php' to complete wordpress installation]"
   end
 
+  service site['webserver'] do
+    action :restart
+  end
+
 end
+
+
+
