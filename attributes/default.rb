@@ -21,7 +21,3 @@
 # General settings
 default['wordpress']['version'] = "latest"
 default['wordpress']['checksum'] = ""
-default['wordpress']['dir'] = "/var/www/wordpress"
-default['wordpress']['db']['database'] = "wordpressdb"
-default['wordpress']['db']['user'] = "wordpressuser"
-default['wordpress']['server_aliases'] = [node['fqdn']]
