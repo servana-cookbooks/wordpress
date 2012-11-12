@@ -72,7 +72,7 @@ node["sites"].each do |site|
   end
 
 
-  log "Navigate to 'http://#{server_fqdn}/wp-admin/install.php' to complete wordpress installation" do
+  log "Navigate to 'http://#{site_fqdn}/wp-admin/install.php' to complete wordpress installation" do
     action :nothing
   end
 
@@ -90,7 +90,7 @@ node["sites"].each do |site|
       :logged_in_key   => node['wordpress']['keys']['logged_in'],
       :nonce_key       => node['wordpress']['keys']['nonce']
     )
-    notifies :write, "log[Navigate to 'http://#{server_fqdn}/wp-admin/install.php' to complete wordpress installation]"
+    notifies :write, "log[Navigate to 'http://#{site_fqdn}/wp-admin/install.php' to complete wordpress installation]"
   end
 
 end
