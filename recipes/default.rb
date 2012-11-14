@@ -20,10 +20,12 @@
 
 
 node["sites"].each do |site|
-  application_set = site['application_set']
 
+  application_set = site['config']['set']
+  webserver = site['config']['webserver']
+  
   node["databases"].each do |db|
-    if db['application_set'] == application_set
+    if db['config']['set'] == application_set
       site['database'] = db
     end
   end
@@ -94,7 +96,7 @@ node["sites"].each do |site|
     notifies :write, "log[Navigate to 'http://#{site_fqdn}/wp-admin/install.php' to complete wordpress installation]"
   end
 
-  service site['webserver'] do
+  service webserver do
     action :restart
   end
 
