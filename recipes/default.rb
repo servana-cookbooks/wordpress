@@ -2,7 +2,7 @@
 # Cookbook Name:: wordpress
 # Recipe:: default
 #
-# Copyright 2009-2010, Opscode, Inc.
+# Copyright 2009-2013, Skystack Limited.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -26,6 +26,8 @@ node["sites"].each do |site|
     application_set = site['config']['set']
     webserver = site['config']['webserver']
     
+    wpDb = {}
+
     node["databases"].each do |db|
       if db['config']['set'] == application_set
         wpDb = db
