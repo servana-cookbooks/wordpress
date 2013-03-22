@@ -21,83 +21,87 @@
 
 node["sites"].each do |site|
 
-  application_set = site['config']['set']
-  webserver = site['config']['webserver']
-  
-  node["databases"].each do |db|
-    if db['config']['set'] == application_set
-      site['database'] = db
-    end
-  end
-
-  site_fqdn = site['server_name']
-  site_dir = site['document_root']
-
-  node.set_unless['wordpress']['db']['password'] = secure_password
-  node.set_unless['wordpress']['keys']['auth'] = secure_password
-  node.set_unless['wordpress']['keys']['secure_auth'] = secure_password
-  node.set_unless['wordpress']['keys']['logged_in'] = secure_password
-  node.set_unless['wordpress']['keys']['nonce'] = secure_password
-
-
-  if node['wordpress']['version'] == 'latest'
-    # WordPress.org does not provide a sha256 checksum, so we'll use the sha1 they do provide
-    require 'digest/sha1'
-    require 'open-uri'
-    local_file = "#{Chef::Config[:file_cache_path]}/wordpress-latest.tar.gz"
-    latest_sha1 = open('http://wordpress.org/latest.tar.gz.sha1') {|f| f.read }
-    unless File.exists?(local_file) && ( Digest::SHA1.hexdigest(File.read(local_file)) == latest_sha1 )
-      remote_file "#{Chef::Config[:file_cache_path]}/wordpress-latest.tar.gz" do
-        source "http://wordpress.org/latest.tar.gz"
-        mode "0644"
-       # action :create_if_missing
+  if site['config']['software'] == "wordpress"
+    
+    application_set = site['config']['set']
+    webserver = site['config']['webserver']
+    
+    node["databases"].each do |db|
+      if db['config']['set'] == application_set
+        wpDb = db
       end
     end
-  else
-    remote_file "#{Chef::Config[:file_cache_path]}/wordpress-#{node['wordpress']['version']}.tar.gz" do
-      source "http://wordpress.org/wordpress-#{node['wordpress']['version']}.tar.gz"
-      mode "0644"
+
+    site_fqdn = site['server_name']
+    site_dir = site['document_root']
+
+    node.set_unless['wordpress']['db']['password'] = secure_password
+    node.set_unless['wordpress']['keys']['auth'] = secure_password
+    node.set_unless['wordpress']['keys']['secure_auth'] = secure_password
+    node.set_unless['wordpress']['keys']['logged_in'] = secure_password
+    node.set_unless['wordpress']['keys']['nonce'] = secure_password
+
+
+    if node['wordpress']['version'] == 'latest'
+      # WordPress.org does not provide a sha256 checksum, so we'll use the sha1 they do provide
+      require 'digest/sha1'
+      require 'open-uri'
+      local_file = "#{Chef::Config[:file_cache_path]}/wordpress-latest.tar.gz"
+      latest_sha1 = open('http://wordpress.org/latest.tar.gz.sha1') {|f| f.read }
+      unless File.exists?(local_file) && ( Digest::SHA1.hexdigest(File.read(local_file)) == latest_sha1 )
+        remote_file "#{Chef::Config[:file_cache_path]}/wordpress-latest.tar.gz" do
+          source "http://wordpress.org/latest.tar.gz"
+          mode "0644"
+         # action :create_if_missing
+        end
+      end
+    else
+      remote_file "#{Chef::Config[:file_cache_path]}/wordpress-#{node['wordpress']['version']}.tar.gz" do
+        source "http://wordpress.org/wordpress-#{node['wordpress']['version']}.tar.gz"
+        mode "0644"
+      end
     end
-  end
 
-  directory "#{site_dir}" do
-    owner "root"
-    group "root"
-    mode "0755"
-    action :create
-    recursive true
-  end
+    directory "#{site_dir}" do
+      owner "root"
+      group "root"
+      mode "0755"
+      action :create
+      recursive true
+    end
 
-  execute "untar-wordpress" do
-    cwd site_dir
-    command "tar --strip-components 1 -xzf #{Chef::Config[:file_cache_path]}/wordpress-#{node['wordpress']['version']}.tar.gz"
-    creates "#{site_dir}/wp-settings.php"
-  end
+    execute "untar-wordpress" do
+      cwd site_dir
+      command "tar --strip-components 1 -xzf #{Chef::Config[:file_cache_path]}/wordpress-#{node['wordpress']['version']}.tar.gz"
+      creates "#{site_dir}/wp-settings.php"
+    end
 
 
-  log "Navigate to 'http://#{site_fqdn}/wp-admin/install.php' to complete wordpress installation" do
-    action :nothing
-  end
+    log "Navigate to 'http://#{site_fqdn}/wp-admin/install.php' to complete wordpress installation" do
+      action :nothing
+    end
 
-  template "#{site_dir}/wp-config.php" do
-    source "wp-config.php.erb"
-    owner "root"
-    group "root"
-    mode "0644"
-    variables(
-      :database        => site['database']['name'],
-      :user            => site['database']['user'],
-      :password        => site['database']['password'],
-      :auth_key        => node['wordpress']['keys']['auth'],
-      :secure_auth_key => node['wordpress']['keys']['secure_auth'],
-      :logged_in_key   => node['wordpress']['keys']['logged_in'],
-      :nonce_key       => node['wordpress']['keys']['nonce']
-    )
-    notifies :write, "log[Navigate to 'http://#{site_fqdn}/wp-admin/install.php' to complete wordpress installation]"
-  end
+    template "#{site_dir}/wp-config.php" do
+      source "wp-config.php.erb"
+      owner "root"
+      group "root"
+      mode "0644"
+      variables(
+        :database        => wpDb['name'],
+        :user            => wpDb['user'],
+        :password        => wpDb['password'],
+        :auth_key        => node['wordpress']['keys']['auth'],
+        :secure_auth_key => node['wordpress']['keys']['secure_auth'],
+        :logged_in_key   => node['wordpress']['keys']['logged_in'],
+        :nonce_key       => node['wordpress']['keys']['nonce']
+      )
+      notifies :write, "log[Navigate to 'http://#{site_fqdn}/wp-admin/install.php' to complete wordpress installation]"
+    end
 
-  service webserver do
-    action :restart
+    service webserver do
+      action :restart
+    end
+
   end
 
 end
